@@ -28,13 +28,15 @@ jobs:
 
       - name: Set up Chrome and ChromeDriver
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | grep -oE "[0-9]+.[0-9]+.[0-9]+.[0-9]+")
-          wget -q "https://chromedriver.storage.googleapis.com/$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*})/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
+            sudo apt-get update
+            sudo apt-get install -y google-chrome-stable
+            google-chrome --version  # Debug: Show Chrome version
+            wget -q "https://chromedriver.storage.googleapis.com/133.0.6943.90/chromedriver_linux64.zip" || echo "wget failed"
+            ls -la  # Debug: Show downloaded files
+            unzip chromedriver_linux64.zip || echo "unzip failed"
+            sudo mv chromedriver /usr/local/bin/ || echo "mv failed"
+            sudo chmod +x /usr/local/bin/chromedriver || echo "chmod failed"
+            which chromedriver  # Debug: Confirm location
 
       - name: Run booking script
         env:
