@@ -40,12 +40,18 @@ jobs:
 
       - name: Run booking script
         env:
-          FULL_NAME: ${{ secrets.FULL_NAME }}
-          EMAIL: ${{ secrets.EMAIL }}
-          BUILDING_NAME: ${{ secrets.BUILDING_NAME }}
-          UNIT_NO: ${{ secrets.UNIT_NO }}
-          NUM_PLAYERS: ${{ secrets.NUM_PLAYERS }}
-          PHONE_NO: ${{ secrets.PHONE_NO }}
+          FULL_NAME_1: ${{ secrets.FULL_NAME_1 }}
+          EMAIL_1: ${{ secrets.EMAIL_1 }}
+          BUILDING_NAME_1: ${{ secrets.BUILDING_NAME_1 }}
+          UNIT_NO_1: ${{ secrets.UNIT_NO_1 }}
+          NUM_PLAYERS_1: ${{ secrets.NUM_PLAYERS_1 }}
+          PHONE_NO_1: ${{ secrets.PHONE_NO_1 }}
+          FULL_NAME_2: ${{ secrets.FULL_NAME_2 }}
+          EMAIL_2: ${{ secrets.EMAIL_2 }}
+          BUILDING_NAME_2: ${{ secrets.BUILDING_NAME_2 }}
+          UNIT_NO_2: ${{ secrets.UNIT_NO_2 }}
+          NUM_PLAYERS_2: ${{ secrets.NUM_PLAYERS_2 }}
+          PHONE_NO_2: ${{ secrets.PHONE_NO_2 }}
         run: |
           CURRENT_TIME=$(date -u +"%A %H:%M")
           echo "Current time: $CURRENT_TIME"
