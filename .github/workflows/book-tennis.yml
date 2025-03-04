@@ -30,12 +30,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
           google-chrome --version
-          # Retry wget up to 3 times with verbose output
-          for i in {1..3}; do
-            wget "https://chromedriver.storage.googleapis.com/133.0.6943.90/chromedriver_linux64.zip" && break
-            echo "wget attempt $i failed, retrying..."
-            sleep 2
-          done
+          wget "https://chromedriver.storage.googleapis.com/134.0.7032.69/chromedriver_linux64.zip"
           ls -la
           unzip chromedriver_linux64.zip || { echo "unzip failed"; exit 1; }
           sudo mv chromedriver /usr/local/bin/ || { echo "mv failed"; exit 1; }
