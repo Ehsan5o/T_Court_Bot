@@ -1,0 +1,50 @@
+name: Book Tennis Court
+
+on:
+  schedule:
+    # Runs at Monday 15:00, 16:00, Thursday 12:00, 13:00 UTC
+    - cron: "0 15 * * 1"  # Monday 15:00 UTC
+    - cron: "0 16 * * 1"  # Monday 16:00 UTC
+    - cron: "0 12 * * 4"  # Thursday 12:00 UTC
+    - cron: "0 13 * * 4"  # Thursday 13:00 UTC
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  book-slot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium
+
+      - name: Set up Chrome and ChromeDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          CHROME_VERSION=$(google-chrome --version | grep -oE "[0-9]+.[0-9]+.[0-9]+.[0-9]+")
+          wget -q "https://chromedriver.storage.googleapis.com/$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%.*})/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip
+          sudo mv chromedriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/chromedriver
+
+      - name: Run booking script
+        env:
+          FULL_NAME: ${{ secrets.FULL_NAME }}
+          EMAIL: ${{ secrets.EMAIL }}
+          BUILDING_NAME: ${{ secrets.BUILDING_NAME }}
+          UNIT_NO: ${{ secrets.UNIT_NO }}
+          NUM_PLAYERS: ${{ secrets.NUM_PLAYERS }}
+          PHONE_NO: ${{ secrets.PHONE_NO }}
+        run: |
+          CURRENT_TIME=$(date -u +"%A %H:%M")
+          echo "Current time: $CURRENT_TIME"
+          python tennis_bot.py "$CURRENT_TIME"
