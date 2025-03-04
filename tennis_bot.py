@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import sys
 import os
 
-CALENDLY_URL = "https://calendly.com/tennis-court-/tennis-court-booking"
+CALENDLY_URL = os.environ.get("CALENDLY_URL")
 
 BOOKING_SCHEDULE = {
     "Monday 19:00": {"target_day": "Wednesday", "target_time": "7:00pm"},
