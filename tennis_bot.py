@@ -17,16 +17,7 @@ BOOKING_SCHEDULE = {
     "Thursday 17:00": {"target_day": "Saturday", "target_time": "5:00pm"}
 }
 
-def calculate_target_date(run_time, target_day):
-    today = datetime.now()
-    days_ahead = (7 + ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(target_day) - today.weekday()) % 7
-    if days_ahead < 2:
-        days_ahead += 7
-    target_date = today + timedelta(days=days_ahead)
-    return target_date.strftime("%Y-%m-%d")
-
 def get_contact_details(run_time_key):
-    # Use User 1 for 19:00 and 16:00 slots, User 2 for 20:00 and 17:00 slots
     if run_time_key in ["Monday 19:00", "Thursday 16:00"]:
         return {
             "full_name": os.environ.get("FULL_NAME_1"),
@@ -57,9 +48,6 @@ def book_tennis_court(run_time_key):
     target_day = target_info["target_day"]
     target_time = target_info["target_time"]
 
-    # Get contact details for this run
-    contact = get_contact_details(run_time_key)
-
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
@@ -70,27 +58,42 @@ def book_tennis_court(run_time_key):
         driver.get(CALENDLY_URL)
         time.sleep(2)
 
-        target_date = calculate_target_date(run_time_key, target_day)
+        # Find bookable (blue) dates using <button> with aria-label
+        now = datetime.now()
+        min_date = now + timedelta(hours=48)  # At least 48 hours ahead
         date_elements = WebDriverWait(driver, 20).until(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, "calendar-day"))
+            EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
         )
+        selected_date = None
         for date in date_elements:
-            if target_date in date.get_attribute("data-date"):
-                date.click()
-                break
-        else:
-            raise Exception(f"Target date {target_date} not found")
+            aria_label = date.get_attribute("aria-label")
+            if aria_label and "Times available" in aria_label:
+                date_str = date.get_attribute("data-date")
+                if date_str:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    if date_obj > min_date:
+                        selected_date = date_str
+                        date.click()
+                        print(f"Selected date: {selected_date} (from {aria_label})")
+                        break
+        if not selected_date:
+            raise Exception("No bookable date found 48+ hours ahead")
 
+        # Select the target time
         time_slots = WebDriverWait(driver, 20).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, "time"))
         )
         for slot in time_slots:
-            if target_time in slot.text.lower():
+            slot_text = slot.text.lower()
+            if target_time in slot_text:
                 slot.click()
+                print(f"Selected time: {slot_text}")
                 break
         else:
-            raise Exception(f"Target time {target_time} not found")
+            raise Exception(f"Target time {target_time} not found on {selected_date}")
 
+        # Fill form and submit
+        contact = get_contact_details(run_time_key)
         next_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Next')]"))
         )
@@ -108,7 +111,7 @@ def book_tennis_court(run_time_key):
         confirm_button.click()
 
         time.sleep(2)
-        print(f"Booked {target_day} {target_time} on {target_date} successfully with {contact['email']}")
+        print(f"Booked {target_day} {target_time} on {selected_date} successfully with {contact['email']}")
 
     except Exception as e:
         print(f"Error booking {target_day} {target_time}: {e}")
