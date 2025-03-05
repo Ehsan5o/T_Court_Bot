@@ -11,10 +11,10 @@ import os
 CALENDLY_URL = os.environ.get("CALENDLY_URL")
 
 BOOKING_SCHEDULE = {
-    "Monday 19:00": {"target_day": "Wednesday", "target_time": "06:00"},  # Updated to match "06:00"
-    "Monday 20:00": {"target_day": "Wednesday", "target_time": "12:00"},  # Updated for 12:00 (adjust if 8:00pm)
-    "Thursday 16:00": {"target_day": "Saturday", "target_time": "12:00"},  # Updated for 12:00 (adjust for 4:00pm)
-    "Thursday 17:00": {"target_day": "Saturday", "target_time": "13:00"}   # Updated for 13:00 (adjust for 5:00pm)
+    "Monday 19:00": {"target_day": "Wednesday", "target_time": "19:00"},  # Wednesday 19:00 GST
+    "Monday 20:00": {"target_day": "Wednesday", "target_time": "20:00"},  # Wednesday 20:00 GST
+    "Thursday 16:00": {"target_day": "Saturday", "target_time": "16:00"},  # Saturday 16:00 GST
+    "Thursday 17:00": {"target_day": "Saturday", "target_time": "17:00"}   # Saturday 17:00 GST
 }
 
 def get_contact_details(run_time_key):
@@ -46,7 +46,7 @@ def book_tennis_court(run_time_key):
     
     target_info = BOOKING_SCHEDULE[run_time_key]
     target_day = target_info["target_day"]  # e.g., "Wednesday"
-    target_time = target_info["target_time"]  # e.g., "06:00"
+    target_time = target_info["target_time"]  # e.g., "19:00"
 
     # Parse run time to determine current time in GST (UTC+4)
     run_day, run_time_str = run_time_key.split()
@@ -111,7 +111,13 @@ def book_tennis_court(run_time_key):
         )
         for slot in time_slots:
             slot_text = slot.text.strip().lower()
-            if target_time in slot_text:  # e.g., "06:00" or "7:00pm"
+            # Handle both 24-hour and 12-hour formats
+            if target_time in slot_text or (f"{target_time}:00" in slot_text):  # e.g., "19:00" or "16:00"
+                slot.click()
+                print(f"Selected time: {slot_text}")
+                break
+            # Optional: Handle "7:00pm" or "4:00pm" if needed
+            elif f"{int(target_time) - 12}:00pm" in slot_text and int(target_time) > 12:
                 slot.click()
                 print(f"Selected time: {slot_text}")
                 break
@@ -127,4 +133,30 @@ def book_tennis_court(run_time_key):
 
         # Fill form and submit
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "full_name_input")))
-        contact = get_contact_details(run_time
+        contact = get_contact_details(run_time_key)
+        driver.find_element(By.ID, "full_name_input").send_keys(contact["full_name"])
+        driver.find_element(By.ID, "email_input").send_keys(contact["email"])
+        driver.find_element(By.ID, "1bT3Iu2abRAKqjda6jqLu").send_keys(contact["building_name"])
+        driver.find_element(By.ID, "tCGwp8nKnr6eDQuqH1Z7F").send_keys(contact["unit_no"])
+        driver.find_element(By.ID, "eMqYw4Nb4Cd2DDrjBwbbm").send_keys(contact["num_players"])
+        driver.find_element(By.ID, "B-IUGCRB09hRLI1QXjzeI").send_keys(contact["phone_no"])
+
+        confirm_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Schedule')]")
+        confirm_button.click()
+
+        time.sleep(2)
+        print(f"Booked {target_day} {target_time}:00 on {selected_date} successfully with {contact['email']}")
+
+    except Exception as e:
+        print(f"Error booking {target_day} {target_time}:00: {e}")
+        raise
+    
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Please provide run time (e.g., 'Monday 19:00')")
+    else:
+        run_time = " ".join(sys.argv[1:])
+        book_tennis_court(run_time)
