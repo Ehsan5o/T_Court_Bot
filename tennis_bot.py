@@ -11,10 +11,10 @@ import os
 CALENDLY_URL = os.environ.get("CALENDLY_URL")
 
 BOOKING_SCHEDULE = {
-    "Monday 19:00": {"target_day": "Wednesday", "target_time": "7:00pm"},
-    "Monday 20:00": {"target_day": "Wednesday", "target_time": "8:00pm"},
-    "Thursday 16:00": {"target_day": "Saturday", "target_time": "4:00pm"},
-    "Thursday 17:00": {"target_day": "Saturday", "target_time": "5:00pm"}
+    "Monday 19:00": {"target_day": "Wednesday", "target_time": "06:00"},  # Updated to match "06:00"
+    "Monday 20:00": {"target_day": "Wednesday", "target_time": "12:00"},  # Updated for 12:00 (adjust if 8:00pm)
+    "Thursday 16:00": {"target_day": "Saturday", "target_time": "12:00"},  # Updated for 12:00 (adjust for 4:00pm)
+    "Thursday 17:00": {"target_day": "Saturday", "target_time": "13:00"}   # Updated for 13:00 (adjust for 5:00pm)
 }
 
 def get_contact_details(run_time_key):
@@ -46,7 +46,7 @@ def book_tennis_court(run_time_key):
     
     target_info = BOOKING_SCHEDULE[run_time_key]
     target_day = target_info["target_day"]  # e.g., "Wednesday"
-    target_time = target_info["target_time"]  # e.g., "7:00pm"
+    target_time = target_info["target_time"]  # e.g., "06:00"
 
     # Parse run time to determine current time in GST (UTC+4)
     run_day, run_time_str = run_time_key.split()
@@ -105,50 +105,26 @@ def book_tennis_court(run_time_key):
         if not selected_date:
             raise Exception(f"No bookable {target_day} found exactly 48 hours from {run_time.strftime('%Y-%m-%d %H:%M')} GST")
 
-        # Select the target time
+        # Select the target time (using buttons with specific class and no disabled)
         time_slots = WebDriverWait(driver, 20).until(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, "time"))
+            EC.presence_of_all_elements_located((By.XPATH, "//button[@role='button' and contains(@class, 'uvkj3lh') and not(contains(@class, 'disabled'))]"))
         )
         for slot in time_slots:
-            slot_text = slot.text.lower()
-            if target_time in slot_text:
+            slot_text = slot.text.strip().lower()
+            if target_time in slot_text:  # e.g., "06:00" or "7:00pm"
                 slot.click()
                 print(f"Selected time: {slot_text}")
                 break
         else:
             raise Exception(f"Target time {target_time} not found on {selected_date}")
 
-        # Fill form and submit
-        contact = get_contact_details(run_time_key)
+        # Click "Next" after selecting time slot
         next_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Next')]"))
+            EC.element_to_be_clickable((By.XPATH, "//button[@aria-label='Next' and contains(@class, 'uvkj3lh yb_MD7H42L8SUzygjrlfk iHJCjB0EZtLFS2z0H')]"))
         )
         next_button.click()
+        print("Clicked Next after time selection")
 
+        # Fill form and submit
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "full_name_input")))
-        driver.find_element(By.ID, "full_name_input").send_keys(contact["full_name"])
-        driver.find_element(By.ID, "email_input").send_keys(contact["email"])
-        driver.find_element(By.ID, "1bT3Iu2abRAKqjda6jqLu").send_keys(contact["building_name"])
-        driver.find_element(By.ID, "tCGwp8nKnr6eDQuqH1Z7F").send_keys(contact["unit_no"])
-        driver.find_element(By.ID, "eMqYw4Nb4Cd2DDrjBwbbm").send_keys(contact["num_players"])
-        driver.find_element(By.ID, "B-IUGCRB09hRLI1QXjzeI").send_keys(contact["phone_no"])
-
-        confirm_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Schedule')]")
-        confirm_button.click()
-
-        time.sleep(2)
-        print(f"Booked {target_day} {target_time} on {selected_date} successfully with {contact['email']}")
-
-    except Exception as e:
-        print(f"Error booking {target_day} {target_time}: {e}")
-        raise
-    
-    finally:
-        driver.quit()
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Please provide run time (e.g., 'Monday 19:00')")
-    else:
-        run_time = " ".join(sys.argv[1:])
-        book_tennis_court(run_time)
+        contact = get_contact_details(run_time
