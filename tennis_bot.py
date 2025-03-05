@@ -11,10 +11,10 @@ import os
 CALENDLY_URL = os.environ.get("CALENDLY_URL")
 
 BOOKING_SCHEDULE = {
-    "Monday 19:00": {"target_day": "Wednesday", "target_time": "19:00"},  # Wednesday 19:00 GST
-    "Monday 20:00": {"target_day": "Wednesday", "target_time": "20:00"},  # Wednesday 20:00 GST
-    "Thursday 16:00": {"target_day": "Saturday", "target_time": "16:00"},  # Saturday 16:00 GST
-    "Thursday 17:00": {"target_day": "Saturday", "target_time": "17:00"}   # Saturday 17:00 GST
+    "Monday 19:00": {"target_day": "Wednesday", "target_time": "19:00"},  # Wednesday 19:00 GST (7:00pm)
+    "Monday 20:00": {"target_day": "Wednesday", "target_time": "20:00"},  # Wednesday 20:00 GST (8:00pm)
+    "Thursday 16:00": {"target_day": "Saturday", "target_time": "16:00"},  # Saturday 16:00 GST (4:00pm)
+    "Thursday 17:00": {"target_day": "Saturday", "target_time": "17:00"}   # Saturday 17:00 GST (5:00pm)
 }
 
 def get_contact_details(run_time_key):
@@ -45,8 +45,8 @@ def book_tennis_court(run_time_key):
         return
     
     target_info = BOOKING_SCHEDULE[run_time_key]
-    target_day = target_info["target_day"]  # e.g., "Wednesday"
-    target_time = target_info["target_time"]  # e.g., "19:00"
+    target_day = target_info["target_day"]  # e.g., "Saturday"
+    target_time = target_info["target_time"]  # e.g., "16:00"
 
     # Parse run time to determine current time in GST (UTC+4)
     run_day, run_time_str = run_time_key.split()
@@ -95,8 +95,7 @@ def book_tennis_court(run_time_key):
                 if date_str:
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
                     # Check if this date matches the target date (exactly 48 hours from run time)
-                    expected_date = target_datetime - timedelta(hours=48)
-                    if (date_obj.date() == expected_date.date() and 
+                    if (date_obj.date() == target_datetime.date() and 
                         date_obj.strftime("%A") == target_day):
                         selected_date = date_str
                         driver.execute_script("arguments[0].click();", date)  # Use JS to click in case of disabled
@@ -112,17 +111,17 @@ def book_tennis_court(run_time_key):
         for slot in time_slots:
             slot_text = slot.text.strip().lower()
             # Handle both 24-hour and 12-hour formats
-            if target_time in slot_text or (f"{target_time}:00" in slot_text):  # e.g., "19:00" or "16:00"
+            if target_time in slot_text or (f"{target_time}:00" in slot_text):  # e.g., "16:00" or "17:00"
                 slot.click()
                 print(f"Selected time: {slot_text}")
                 break
-            # Optional: Handle "7:00pm" or "4:00pm" if needed
+            # Optional: Handle "4:00pm" or "5:00pm" if needed
             elif f"{int(target_time) - 12}:00pm" in slot_text and int(target_time) > 12:
                 slot.click()
                 print(f"Selected time: {slot_text}")
                 break
         else:
-            raise Exception(f"Target time {target_time} not found on {selected_date}")
+            raise Exception(f"Target time {target_time}:00 not found on {selected_date}")
 
         # Click "Next" after selecting time slot
         next_button = WebDriverWait(driver, 10).until(
