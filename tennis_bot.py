@@ -37,7 +37,7 @@ def get_contact_details(run_time_key):
             "phone_no": os.environ.get("PHONE_NO_2")
         }
     else:
-        raise ValueError(f"Unknown run time: {run_time_key}")
+        raise ValueError(f"Unknown run_time_key: {run_time_key}")
 
 def book_tennis_court(run_time_key):
     if run_time_key not in BOOKING_SCHEDULE:
@@ -45,8 +45,33 @@ def book_tennis_court(run_time_key):
         return
     
     target_info = BOOKING_SCHEDULE[run_time_key]
-    target_day = target_info["target_day"]
-    target_time = target_info["target_time"]
+    target_day = target_info["target_day"]  # e.g., "Wednesday"
+    target_time = target_info["target_time"]  # e.g., "7:00pm"
+
+    # Parse run time to determine current time in GST (UTC+4)
+    run_day, run_time_str = run_time_key.split()
+    run_hour = int(run_time_str.split(":")[0])
+    now = datetime.now()
+    run_time = now.replace(hour=run_hour, minute=0, second=0, microsecond=0)
+    if run_time < now:
+        run_time += timedelta(days=1)  # If run time has passed today, use tomorrow
+
+    # Adjust to GST (UTC+4) if not already
+    run_time = run_time + timedelta(hours=4)  # Convert to GST
+
+    # Calculate target booking date/time (48 hours later on Wednesday or Saturday)
+    if target_day == "Wednesday":
+        # Find the next Wednesday 48 hours from Monday's run time
+        target_datetime = run_time + timedelta(hours=48)
+        while target_datetime.weekday() != 2:  # 2 is Wednesday (0=Monday, 6=Sunday)
+            target_datetime += timedelta(days=1)
+    elif target_day == "Saturday":
+        # Find the next Saturday 48 hours from Thursday's run time
+        target_datetime = run_time + timedelta(hours=48)
+        while target_datetime.weekday() != 5:  # 5 is Saturday
+            target_datetime += timedelta(days=1)
+    target_date = target_datetime.strftime("%Y-%m-%d")
+    target_weekday = target_datetime.strftime("%A")
 
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -58,9 +83,7 @@ def book_tennis_court(run_time_key):
         driver.get(CALENDLY_URL)
         time.sleep(2)
 
-        # Find bookable (blue) dates using <button> with aria-label
-        now = datetime.now()
-        min_date = now + timedelta(hours=48)  # At least 48 hours ahead
+        # Find all bookable (blue) dates using <button> with aria-label
         date_elements = WebDriverWait(driver, 20).until(
             EC.presence_of_all_elements_located((By.TAG_NAME, "button"))
         )
@@ -71,13 +94,16 @@ def book_tennis_court(run_time_key):
                 date_str = date.get_attribute("data-date")
                 if date_str:
                     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                    if date_obj > min_date:
+                    # Check if this date matches the target date (exactly 48 hours from run time)
+                    expected_date = target_datetime - timedelta(hours=48)
+                    if (date_obj.date() == expected_date.date() and 
+                        date_obj.strftime("%A") == target_day):
                         selected_date = date_str
-                        date.click()
+                        driver.execute_script("arguments[0].click();", date)  # Use JS to click in case of disabled
                         print(f"Selected date: {selected_date} (from {aria_label})")
                         break
         if not selected_date:
-            raise Exception("No bookable date found 48+ hours ahead")
+            raise Exception(f"No bookable {target_day} found exactly 48 hours from {run_time.strftime('%Y-%m-%d %H:%M')} GST")
 
         # Select the target time
         time_slots = WebDriverWait(driver, 20).until(
