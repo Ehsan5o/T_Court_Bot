@@ -3,7 +3,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager  # Added for ChromeDriver management
+from webdriver_manager.chrome import ChromeDriverManager  # For ChromeDriver management
+from selenium.webdriver.chrome.service import Service  # Added for modern Selenium API
 import time
 from datetime import datetime, timedelta
 import sys
@@ -93,8 +94,8 @@ def book_tennis_court(run_time_key):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    # Use webdriver-manager to automatically set up ChromeDriver
-    driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=chrome_options)
+    # Use webdriver-manager with the modern Service API
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     
     try:
         driver.get(CALENDLY_URL)
