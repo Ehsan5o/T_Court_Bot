@@ -39,7 +39,46 @@ def get_contact_details(run_time_key):
     else:
         raise ValueError(f"Unknown run_time_key: {run_time_key}")
 
+def normalize_run_time(run_time_key):
+    """Normalize the run time to the nearest scheduled time in BOOKING_SCHEDULE."""
+    run_day, run_time_str = run_time_key.split()
+    run_hour, run_minute = map(int, run_time_str.split(":"))
+
+    # Define scheduled times for each day
+    scheduled_times = {
+        "Monday": ["19:00", "20:00"],
+        "Thursday": ["16:00", "17:00"]
+    }
+
+    if run_day not in scheduled_times:
+        raise ValueError(f"Invalid run day: {run_day}")
+
+    # Find the closest scheduled time on the same day
+    closest_time = None
+    min_diff = float('inf')
+    for scheduled_time in scheduled_times[run_day]:
+        scheduled_hour = int(scheduled_time.split(":")[0])
+        diff = abs(run_hour * 60 + run_minute - scheduled_hour * 60)
+        if diff < min_diff:
+            min_diff = diff
+            closest_time = scheduled_time
+
+    # If the run is within 60 minutes of a scheduled time, normalize it
+    if min_diff <= 60:
+        normalized_run_time = f"{run_day} {closest_time}"
+        print(f"Normalized run time from {run_time_key} to {normalized_run_time}")
+        return normalized_run_time
+    else:
+        raise ValueError(f"Run time {run_time_key} is too far from any scheduled time")
+
 def book_tennis_court(run_time_key):
+    # Normalize the run time to handle delays
+    try:
+        run_time_key = normalize_run_time(run_time_key)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+
     if run_time_key not in BOOKING_SCHEDULE:
         print(f"Invalid run time: {run_time_key}")
         return
@@ -48,7 +87,7 @@ def book_tennis_court(run_time_key):
     target_day = target_info["target_day"]  # e.g., "Saturday"
     target_time = target_info["target_time"]  # e.g., "16:00"
 
-    # Parse run time to determine current time in GST (UTC+4)
+    # Parse the normalized run time to determine current time in GST (UTC+4)
     run_day, run_time_str = run_time_key.split()
     run_hour = int(run_time_str.split(":")[0])
     now = datetime.now()
