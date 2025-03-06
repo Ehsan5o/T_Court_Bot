@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 from datetime import datetime, timedelta
+import sys  # Added to fix the NameError
 import os
 
 CALENDLY_URL = os.environ.get("CALENDLY_URL")
@@ -167,8 +168,7 @@ def book_tennis_court(run_time_key):
         driver.quit()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Please provide run time (e.g., 'Friday 14:00')")
-    else:
-        run_time = " ".join(sys.argv[1:])
-        book_tennis_court(run_time)
+    # Hardcode the run time for the test since it's manual
+    run_time = "Friday 14:00"
+    print(f"Current time: {run_time}")
+    book_tennis_court(run_time)
