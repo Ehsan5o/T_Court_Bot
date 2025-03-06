@@ -3,8 +3,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager  # For ChromeDriver management
-from selenium.webdriver.chrome.service import Service  # Added for modern Selenium API
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 import time
 from datetime import datetime, timedelta
 import sys
@@ -94,10 +94,14 @@ def book_tennis_court(run_time_key):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    # Use webdriver-manager with the modern Service API
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     
     try:
+        # Debug: Print the CALENDLY_URL to verify its value
+        print(f"Attempting to navigate to CALENDLY_URL: {CALENDLY_URL}")
+        if not CALENDLY_URL or not CALENDLY_URL.startswith(('http://', 'https://')):
+            raise ValueError("CALENDLY_URL is empty or invalid. Please set a valid URL (e.g., https://calendly.com/tennis-court-/tennis-court-booking)")
+
         driver.get(CALENDLY_URL)
         time.sleep(2)
 
